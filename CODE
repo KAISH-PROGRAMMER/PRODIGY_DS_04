@@ -1,0 +1,60 @@
+1. Data Collection
+import tweepy
+# Authenticate with Twitter API
+auth = tweepy.OAuthHandler('API_KEY', 'API_SECRET_KEY')
+auth.set_access_token('ACCESS_TOKEN', 'ACCESS_TOKEN_SECRET')
+api = tweepy.API(auth)
+# Collect tweets
+query = 'your_topic_or_brand'
+tweets = tweepy.Cursor(api.search_tweets, q=query, lang="en", tweet_mode='extended').items(1000)
+# Extract tweet text
+tweet_texts = [tweet.full_text for tweet in tweets]
+
+2. Data Preprocessing
+import re
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+# Initialize lemmatizer
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
+def preprocess(text):
+    text = re.sub(r"http\S+|@\S+|#\S+", "", text)  # Remove URLs, mentions, hashtags
+    text = re.sub(r"[^A-Za-z\s]", "", text)  # Remove special characters
+    tokens = word_tokenize(text.lower())
+    tokens = [lemmatizer.lemmatize(token) for token in tokens if token not in stop_words]
+    return " ".join(tokens)
+cleaned_texts = [preprocess(text) for text in tweet_texts]
+
+3. Sentiment Analysis
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+analyzer = SentimentIntensityAnalyzer()
+def analyze_sentiment(text):
+    scores = analyzer.polarity_scores(text)
+    return scores
+sentiment_scores = [analyze_sentiment(text) for text in cleaned_texts]
+
+4. Visualization
+import matplotlib.pyplot as plt
+import pandas as pd
+# Convert to DataFrame
+df = pd.DataFrame(sentiment_scores)
+# Plot sentiment over time
+df['compound'].plot(kind='line', title='Sentiment Over Time')
+plt.show()
+# Plot sentiment distribution
+df[['neg', 'neu', 'pos']].mean().plot(kind='bar', title='Sentiment Distribution')
+plt.show()
+# Word Cloud for positive sentiments
+from wordcloud import WordCloud
+positive_texts = " ".join([cleaned_texts[i] for i in range(len(cleaned_texts)) if df['compound'][i] > 0])
+wordcloud = WordCloud(width=800, height=400).generate(positive_texts)
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Positive Sentiment Word Cloud')
+plt.show()
+
+
+
+
